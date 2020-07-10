@@ -109,20 +109,24 @@
 
 (defn sync-pom
   "Creates or updates a pom.xml file at the root of the project. lib is a symbol naming the library the pom.xml file refers to. The groupId attribute of the pom.xml file is the namespace of the symbol \"lib\" if lib is a namespaced symbol, or if its name is an unqualified symbol. The artifactId attribute of the pom.xml file is the name of the \"lib\" symbol. The pom.xml version, dependencies, and repositories attributes are updated using the version, deps and repos parameters."
-  [lib {:keys [:mvn/version]} {:keys [deps :mvn/repos]}]
-  (let [root-path (utils/make-path (System/getProperty "user.dir"))
-        [group-id artifact-id classifier] (maven/lib->names lib)
-        pom-path (.resolve root-path "pom.xml")
-        pom-file (.toFile pom-path)
-        pom (if (.exists pom-file)
-              (with-open [rdr (io/reader pom-file)]
-                (-> rdr
-                    parse-xml
-                    (replace-project-infos group-id artifact-id version)
-                    (replace-deps deps)
-                    (replace-repos repos)))
-              (gen-pom group-id artifact-id version deps repos))]
-    (spit pom-file (xml/indent-str pom))))
+  ([lib {:keys [:mvn/version] :as coords} {:keys [deps :mvn/repos] :as deps-map}]
+   (sync-pom lib coords deps-map {}))
+  ([lib {:keys [:mvn/version]} {:keys [deps :mvn/repos]}
+    {:keys [root-path]
+     :or {root-path (System/getProperty "user.dir")}}]
+   (let [root-path (utils/make-path root-path)
+         [group-id artifact-id classifier] (maven/lib->names lib)
+         pom-path (.resolve root-path "pom.xml")
+         pom-file (.toFile pom-path)
+         pom (if (.exists pom-file)
+               (with-open [rdr (io/reader pom-file)]
+                 (-> rdr
+                     parse-xml
+                     (replace-project-infos group-id artifact-id version)
+                     (replace-deps deps)
+                     (replace-repos repos)))
+               (gen-pom group-id artifact-id version deps repos))]
+     (spit pom-file (xml/indent-str pom)))))
 
 (defn make-pom-properties [lib {:keys [:mvn/version]}]
   (let [baos (ByteArrayOutputStream.)
@@ -146,4 +150,3 @@
 
   (make-pom-properties 'badigeong/badigeon '{:mvn/version "0.0.1-SNAPSHOT"})
   )
-

@@ -174,13 +174,14 @@
   ([lib maven-coords]
    (jar lib maven-coords nil))
   ([lib maven-coords
-    {:keys [out-path main manifest
+    {:keys [out-path root-path main manifest
             paths deps :mvn/repos
             exclusion-predicate inclusion-path
             allow-all-dependencies?]
-     :or {exclusion-predicate default-exclusion-predicate}
+     :or {exclusion-predicate default-exclusion-predicate
+          root-path (System/getProperty "user.dir")}
      :as options}]
-   (let [root-path (utils/make-path (System/getProperty "user.dir"))
+   (let [root-path (utils/make-path root-path)
          [group-id artifact-id classifier] (maven/lib->names lib)
          inclusion-path (or inclusion-path
                             (partial default-inclusion-path group-id artifact-id))
@@ -200,7 +201,7 @@
                     (.resolve ^Path root-path ^Path out-path)
                     out-path)
          ;; Do not merge system and user wide deps.edn files
-         deps-map (-> (deps-reader/slurp-deps "deps.edn")
+         deps-map (-> (deps-reader/slurp-deps (str (.resolve root-path "deps.edn")))
                       ;; Replositories must be explicilty provided as parameters
                       (dissoc :mvn/repos)
                       (merge (select-keys options [:paths :deps :mvn/repos])))
@@ -211,7 +212,7 @@
          pom-properties (pom/make-pom-properties lib maven-coords)]
      (when-not allow-all-dependencies?
        (check-non-maven-dependencies deps-map))
-     (pom/sync-pom lib maven-coords deps-map)
+     (pom/sync-pom lib maven-coords deps-map options)
      (.mkdirs (.toFile (.getParent ^Path out-path)))
      (with-open [jar-out (-> (.toFile ^Path out-path)
                              (FileOutputStream.)
@@ -263,7 +264,7 @@
         :mvn/repos '{"clojars" {:url "https://repo.clojars.org/"}}
         :allow-all-dependencies? true
         :main 'badigeon.main})
-  
+
   )
 
 ;; AOT compilation, no sources in jar -> possibility to set a custom path (target/classes)
