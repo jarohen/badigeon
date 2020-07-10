@@ -5,6 +5,7 @@
             [clojure.data.xml.tree :as tree]
             [clojure.data.xml.event :as event]
             [clojure.tools.deps.alpha.util.maven :as maven]
+            [clojure.tools.deps.alpha.util.dir :as deps-dir]
             [badigeon.utils :as utils])
   (:import [java.io File Reader ByteArrayOutputStream]
            [java.nio.file Paths]
@@ -110,10 +111,8 @@
 (defn sync-pom
   "Creates or updates a pom.xml file at the root of the project. lib is a symbol naming the library the pom.xml file refers to. The groupId attribute of the pom.xml file is the namespace of the symbol \"lib\" if lib is a namespaced symbol, or if its name is an unqualified symbol. The artifactId attribute of the pom.xml file is the name of the \"lib\" symbol. The pom.xml version, dependencies, and repositories attributes are updated using the version, deps and repos parameters."
   [lib {:keys [:mvn/version]} {:keys [deps :mvn/repos]}]
-  (let [root-path (utils/make-path (System/getProperty "user.dir"))
-        [group-id artifact-id classifier] (maven/lib->names lib)
-        pom-path (.resolve root-path "pom.xml")
-        pom-file (.toFile pom-path)
+  (let [[group-id artifact-id classifier] (maven/lib->names lib)
+        pom-file (deps-dir/canonicalize (io/file "pom.xml"))
         pom (if (.exists pom-file)
               (with-open [rdr (io/reader pom-file)]
                 (-> rdr
@@ -146,4 +145,3 @@
 
   (make-pom-properties 'badigeong/badigeon '{:mvn/version "0.0.1-SNAPSHOT"})
   )
-

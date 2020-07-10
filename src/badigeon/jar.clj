@@ -1,5 +1,6 @@
 (ns badigeon.jar
   (:require [clojure.tools.deps.alpha.reader :as deps-reader]
+            [clojure.tools.deps.alpha.util.dir :as deps-dir]
             [badigeon.pom :as pom]
             [badigeon.utils :as utils]
             [clojure.string :as string]
@@ -180,7 +181,7 @@
             allow-all-dependencies?]
      :or {exclusion-predicate default-exclusion-predicate}
      :as options}]
-   (let [root-path (utils/make-path (System/getProperty "user.dir"))
+   (let [root-path (utils/make-path deps-dir/*the-dir*)
          [group-id artifact-id classifier] (maven/lib->names lib)
          inclusion-path (or inclusion-path
                             (partial default-inclusion-path group-id artifact-id))
@@ -200,7 +201,7 @@
                     (.resolve ^Path root-path ^Path out-path)
                     out-path)
          ;; Do not merge system and user wide deps.edn files
-         deps-map (-> (deps-reader/slurp-deps "deps.edn")
+         deps-map (-> (deps-reader/slurp-deps (deps-dir/canonicalize (io/file "deps.edn")))
                       ;; Replositories must be explicilty provided as parameters
                       (dissoc :mvn/repos)
                       (merge (select-keys options [:paths :deps :mvn/repos])))

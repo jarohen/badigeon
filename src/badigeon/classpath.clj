@@ -1,7 +1,9 @@
 (ns badigeon.classpath
   (:require [clojure.tools.deps.alpha :as deps]
             [clojure.tools.deps.alpha.reader :as deps-reader]
-            [badigeon.utils :as utils]))
+            [clojure.tools.deps.alpha.util.dir :as deps-dir]
+            [badigeon.utils :as utils]
+            [clojure.java.io :as io]))
 
 (defn make-classpath
   "Builds a classpath by using the provided deps spec or, by default, the deps.edn file of the current project. Returns the built classpath as a string.
@@ -10,7 +12,7 @@
   ([]
    (make-classpath nil))
   ([{:keys [deps-map aliases]}]
-   (let [deps-map (or deps-map (deps-reader/slurp-deps "deps.edn"))
+   (let [deps-map (or deps-map (deps-reader/slurp-deps (deps-dir/canonicalize (io/file "deps.edn"))))
          deps-map (update deps-map :mvn/repos utils/with-standard-repos)
          args-map (deps/combine-aliases deps-map aliases)]
      (-> (deps/resolve-deps deps-map args-map)
